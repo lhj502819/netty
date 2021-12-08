@@ -44,6 +44,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
 
     private static final InternalLogger logger = InternalLoggerFactory.getInstance(AbstractChannel.class);
 
+    //父Channel，对于NioServerSocketChannel parent为空
     private final Channel parent;
     private final ChannelId id;
     private final Unsafe unsafe;
@@ -70,6 +71,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
      */
     protected AbstractChannel(Channel parent) {
         this.parent = parent;
+        //创建一个Channel ID
         id = newId();
         unsafe = newUnsafe();
         pipeline = newChannelPipeline();

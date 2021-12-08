@@ -31,6 +31,9 @@ import java.util.Map;
  */
 public abstract class AbstractBootstrapConfig<B extends AbstractBootstrap<B, C>, C extends Channel> {
 
+    /**
+     * 启动类对象，下边的方法基本上都是调用启动类的属性对应的方法，读取对应的配置
+     */
     protected final B bootstrap;
 
     protected AbstractBootstrapConfig(B bootstrap) {

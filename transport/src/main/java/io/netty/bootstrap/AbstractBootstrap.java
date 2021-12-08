@@ -223,7 +223,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
      * Validate all the parameters. Sub-classes may override this, but should
      * call the super method in that case.
      *
-     * 校验配置是否正确，#bind方法会调用此方法
+     * 校验配置是否正确，{@link #bind()}方法会调用此方法
      */
     public B validate() {
         if (group == null) {
@@ -258,11 +258,13 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
      * Create a new {@link Channel} and bind it.
      */
     public ChannelFuture bind() {
+        //校验服务启动
         validate();
         SocketAddress localAddress = this.localAddress;
         if (localAddress == null) {
             throw new IllegalStateException("localAddress not set");
         }
+        //绑定本地地址
         return doBind(localAddress);
     }
 
@@ -296,18 +298,21 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
     }
 
     private ChannelFuture doBind(final SocketAddress localAddress) {
+        //初始化并注册一个Channel对象，因为注册是异步的过程，所以返回一个ChannelFuture
         final ChannelFuture regFuture = initAndRegister();
         final Channel channel = regFuture.channel();
         if (regFuture.cause() != null) {
+            //如果发生异常，直接返回
             return regFuture;
         }
 
-        if (regFuture.isDone()) {
+        if (regFuture.isDone()) {//如果注册完成了
+            //绑定Channel的端口，并注册Channel到SelectionKey中
             // At this point we know that the registration was complete and successful.
             ChannelPromise promise = channel.newPromise();
             doBind0(regFuture, channel, localAddress, promise);
             return promise;
-        } else {
+        } else {//如果未注册完成
             // Registration future is almost always fulfilled already, but just in case it's not.
             final PendingRegistrationPromise promise = new PendingRegistrationPromise(channel);
             regFuture.addListener(new ChannelFutureListener() {
@@ -331,28 +336,39 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
         }
     }
 
+    /**
+     * 初始化并注册一个Channel对象，返回一个ChannelFuture对象
+     * @return
+     */
     final ChannelFuture initAndRegister() {
         Channel channel = null;
         try {
+            //创建Channel对象，这个ChannelFactory是在调用#channel方法设置的，#channel方法是用来设置实例化的NioServerSocketChannel类，而不是真正的实例化
             channel = channelFactory.newChannel();
+            //初始化Channel配置
             init(channel);
         } catch (Throwable t) {
-            if (channel != null) {
+            //异常
+            if (channel != null) {//如果已创建channel则关闭channel
                 // channel can be null if newChannel crashed (eg SocketException("too many open files"))
                 channel.unsafe().closeForcibly();
                 // as the Channel is not registered yet we need to force the usage of the GlobalEventExecutor
                 return new DefaultChannelPromise(channel, GlobalEventExecutor.INSTANCE).setFailure(t);
             }
+            //返回带异常的DefaultChannelPromise对象，同时需要绑定一个FailedChannel
             // as the Channel is not registered yet we need to force the usage of the GlobalEventExecutor
             return new DefaultChannelPromise(new FailedChannel(), GlobalEventExecutor.INSTANCE).setFailure(t);
         }
 
+        //注册Channel到EventLoopGroup中
         ChannelFuture regFuture = config().group().register(channel);
         if (regFuture.cause() != null) {
+            //如果发生异常，并且Channel已经注册成功，则调用#close方法关闭Channel
             if (channel.isRegistered()) {
                 channel.close();
             } else {
-                channel.unsafe().closeForcibly();
+                //如果发生异常并且没有注册成功，则调用closeForcibly强制关闭
+                channel.unsafe().closeForcibly();//强制关闭Channel
             }
         }
 
@@ -483,6 +499,10 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
         }
     }
 
+    /**
+     * 与{@link #option(ChannelOption, Object)}不同的是此方法是用于设置已经创建的Channel
+     *  {@link #option(ChannelOption, Object)}是用于设置未创建Channel
+     */
     @SuppressWarnings("unchecked")
     private static void setChannelOption(
             Channel channel, ChannelOption<?> option, Object value, InternalLogger logger) {

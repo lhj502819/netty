@@ -66,6 +66,9 @@ public class NioServerSocketChannel extends AbstractNioMessageChannel
         }
     }
 
+    /**
+     * Channel对应的配置对象，每种Channel实现类，也会对应一个ChannelConfig实现类，例如NioServerSocketChannel对应ServerSocketChannelConfig
+     */
     private final ServerSocketChannelConfig config;
 
     /**
@@ -86,7 +89,9 @@ public class NioServerSocketChannel extends AbstractNioMessageChannel
      * Create a new instance using the given {@link ServerSocketChannel}.
      */
     public NioServerSocketChannel(ServerSocketChannel channel) {
+        //调用父类的构造方法，传入的SelectionKey为OP_ACCEPT
         super(null, channel, SelectionKey.OP_ACCEPT);
+        //初始化config属性
         config = new NioServerSocketChannelConfig(this, javaChannel().socket());
     }
 
