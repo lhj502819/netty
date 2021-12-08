@@ -59,7 +59,6 @@ import java.nio.channels.SocketChannel;
 import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
@@ -1756,17 +1755,19 @@ public class SslHandler extends ByteToMessageDecoder implements ChannelOutboundH
 
         void runComplete() {
             EventExecutor executor = ctx.executor();
-            if (executor.inEventLoop()) {
-                resumeOnEventExecutor();
-            } else {
-                // Jump back on the EventExecutor.
-                executor.execute(new Runnable() {
-                    @Override
-                    public void run() {
-                        resumeOnEventExecutor();
-                    }
-                });
-            }
+            // Jump back on the EventExecutor. We do this even if we are already on the EventLoop to guard against
+            // reentrancy issues. Failing to do so could lead to the situation of tryDecode(...) be called and so
+            // channelRead(...) while still in the decode loop. In this case channelRead(...) might release the input
+            // buffer if its empty which would then result in an IllegalReferenceCountException when we try to continue
+            // decoding.
+            //
+            // See https://github.com/netty/netty-tcnative/issues/68
+            executor.execute(new Runnable() {
+                @Override
+                public void run() {
+                    resumeOnEventExecutor();
+                }
+            });
         }
 
         @Override

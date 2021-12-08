@@ -17,6 +17,7 @@ package io.netty.channel.epoll;
 
 import io.netty.channel.unix.Buffer;
 import io.netty.util.internal.PlatformDependent;
+import io.netty.util.internal.UnstableApi;
 
 import java.nio.ByteBuffer;
 
@@ -38,10 +39,11 @@ import java.nio.ByteBuffer;
  * We use {@code fd} if the {@code epoll_data union} to store the actual file descriptor of an
  * {@link AbstractEpollChannel} and so be able to map it later.
  */
-final class EpollEventArray {
+@UnstableApi
+public final class EpollEventArray {
     // Size of the epoll_event struct
     private static final int EPOLL_EVENT_SIZE = Native.sizeofEpollEvent();
-    // The offsiet of the data union in the epoll_event struct
+    // The offset of the data union in the epoll_event struct
     private static final int EPOLL_DATA_OFFSET = Native.offsetofEpollData();
 
     private ByteBuffer memory;
