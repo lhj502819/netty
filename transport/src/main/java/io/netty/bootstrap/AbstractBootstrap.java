@@ -345,7 +345,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
         try {
             //创建Channel对象，这个ChannelFactory是在调用#channel方法设置的，#channel方法是用来设置实例化的NioServerSocketChannel类，而不是真正的实例化
             channel = channelFactory.newChannel();
-            //初始化Channel配置
+            //初始化Channel配置，抽象方法，需要ServerBootstrap和BootStrap进行实现
             init(channel);
         } catch (Throwable t) {
             //异常
@@ -396,8 +396,10 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
             @Override
             public void run() {
                 if (regFuture.isSuccess()) {
+                    //注册成功，绑定端口
                     channel.bind(localAddress, promise).addListener(ChannelFutureListener.CLOSE_ON_FAILURE);
                 } else {
+                    //注册失败，回调通知promise失败
                     promise.setFailure(regFuture.cause());
                 }
             }

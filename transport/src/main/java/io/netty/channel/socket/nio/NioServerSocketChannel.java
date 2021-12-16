@@ -59,6 +59,12 @@ public class NioServerSocketChannel extends AbstractNioMessageChannel
              *
              *  See <a href="https://github.com/netty/netty/issues/2308">#2308</a>.
              */
+            //和ServerSocketChannel#open一样
+            /**
+             * public static ServerSocketChannel open() throws IOException {
+             *         return SelectorProvider.provider().openServerSocketChannel();
+             *     }
+             */
             return provider.openServerSocketChannel();
         } catch (IOException e) {
             throw new ChannelException(
@@ -136,6 +142,7 @@ public class NioServerSocketChannel extends AbstractNioMessageChannel
     @Override
     protected void doBind(SocketAddress localAddress) throws Exception {
         if (PlatformDependent.javaVersion() >= 7) {
+            //调用Java原生的ServerSocketChannel绑定ip + 端口
             javaChannel().bind(localAddress, config.getBacklog());
         } else {
             javaChannel().socket().bind(localAddress, config.getBacklog());

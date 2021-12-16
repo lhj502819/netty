@@ -16,11 +16,7 @@
 package io.netty.example.echo;
 
 import io.netty.bootstrap.ServerBootstrap;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.ChannelOption;
-import io.netty.channel.ChannelPipeline;
-import io.netty.channel.EventLoopGroup;
+import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
@@ -75,7 +71,12 @@ public final class EchoServer {
 
             // Start the server.
             //绑定端口，并同步等待成功，即启动服务端
-            ChannelFuture f = b.bind(PORT).sync();
+            ChannelFuture f = b.bind(PORT).addListener(new ChannelFutureListener() {
+                @Override
+                public void operationComplete(ChannelFuture future) throws Exception {
+                    System.out.println("测试Channel绑定成功后回调");
+                }
+            }).sync();
 
             // Wait until the server socket is closed.
             //监听服务端关闭，并阻塞等待
