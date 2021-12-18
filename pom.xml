@@ -26,7 +26,7 @@
   <groupId>io.netty</groupId>
   <artifactId>netty-parent</artifactId>
   <packaging>pom</packaging>
-  <version>4.1.71.Final-SNAPSHOT</version>
+  <version>4.1.73.Final-SNAPSHOT</version>
 
   <name>Netty</name>
   <url>https://netty.io/</url>
@@ -517,7 +517,7 @@
     <jni.classifier>${os.detected.name}-${os.detected.arch}</jni.classifier>
     <logging.config>${project.basedir}/../common/src/test/resources/logback-test.xml</logging.config>
     <logging.logLevel>debug</logging.logLevel>
-    <log4j2.version>2.6.2</log4j2.version>
+    <log4j2.version>2.16.0</log4j2.version>
     <enforcer.plugin.version>1.4.1</enforcer.plugin.version>
     <junit.version>5.7.0</junit.version>
     <testJavaHome>${java.home}</testJavaHome>
@@ -786,7 +786,7 @@
       <dependency>
         <groupId>org.apache.logging.log4j</groupId>
         <artifactId>log4j-1.2-api</artifactId>
-        <version>2.14.1</version>
+        <version>${log4j2.version}</version>
         <exclusions>
           <exclusion>
             <artifactId>mail</artifactId>
