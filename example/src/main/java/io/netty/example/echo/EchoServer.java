@@ -54,20 +54,20 @@ public final class EchoServer {
             //创建ServerBootstrap对象
             ServerBootstrap b = new ServerBootstrap();
             b.group(bossGroup, workerGroup)//设置EventLoopGroup
-             .channel(NioServerSocketChannel.class)//设置要被实例化的NioServerSocketChannel类
-             .option(ChannelOption.SO_BACKLOG, 100) //设置NioServerSocketChannel的可设置项
-             .handler(new LoggingHandler(LogLevel.INFO))//设置NioServerSocketChannel的处理器
-             .childHandler(new ChannelInitializer<SocketChannel>() {//设置处理连入的Client的SocketChannel的处理器
-                 @Override
-                 public void initChannel(SocketChannel ch) throws Exception {
-                     ChannelPipeline p = ch.pipeline();
-                     if (sslCtx != null) {
-                         p.addLast(sslCtx.newHandler(ch.alloc()));
-                     }
-                     //p.addLast(new LoggingHandler(LogLevel.INFO));
-                     p.addLast(serverHandler);
-                 }
-             });
+                    .channel(NioServerSocketChannel.class)//设置要被实例化的NioServerSocketChannel类
+                    .option(ChannelOption.SO_BACKLOG, 100) //设置NioServerSocketChannel的可设置项
+                    .handler(new LoggingHandler(LogLevel.INFO))//设置NioServerSocketChannel的处理器
+                    .childHandler(new ChannelInitializer<SocketChannel>() {//设置处理连入的Client的SocketChannel的处理器
+                        @Override
+                        public void initChannel(SocketChannel ch) throws Exception {
+                            ChannelPipeline p = ch.pipeline();
+                            if (sslCtx != null) {
+                                p.addLast(sslCtx.newHandler(ch.alloc()));
+                            }
+                            //p.addLast(new LoggingHandler(LogLevel.INFO));
+                            p.addLast(serverHandler);
+                        }
+                    });
 
             // Start the server.
             //绑定端口，并同步等待成功，即启动服务端

@@ -40,6 +40,7 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * {@link Bootstrap} sub-class which allows easy bootstrap of {@link ServerChannel}
+ * 用于Server启动器实现类
  *
  */
 public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerChannel> {
@@ -134,20 +135,25 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
 
         ChannelPipeline p = channel.pipeline();
 
+        //记录当前的属性
         final EventLoopGroup currentChildGroup = childGroup;
         final ChannelHandler currentChildHandler = childHandler;
         final Entry<ChannelOption<?>, Object>[] currentChildOptions = newOptionsArray(childOptions);
         final Entry<AttributeKey<?>, Object>[] currentChildAttrs = newAttributesArray(childAttrs);
 
+        //添加ChannelInitializer对象到pipeline中，用于后续初始化，ChannelHandler到pipeline中
+        //为什么使用ChannelInitializer进行初始化？而不是直接添加到pipeline中
+        //因为此时Channel还没有注册到EventLoop中，如果调用eventLoop().execute会抛出Exception in thread "main" java.lang.IllegalStateException: channel not registered to an event loop异常
         p.addLast(new ChannelInitializer<Channel>() {
             @Override
             public void initChannel(final Channel ch) {
                 final ChannelPipeline pipeline = ch.pipeline();
+                //添加配置的ChannelHandler到pipeline中
                 ChannelHandler handler = config.handler();
                 if (handler != null) {
                     pipeline.addLast(handler);
                 }
-
+                //添加ServerBootstrapAcceptor到pipeline中
                 ch.eventLoop().execute(new Runnable() {
                     @Override
                     public void run() {
@@ -172,6 +178,9 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
         return this;
     }
 
+    /**
+     * 也是ChannelHandler，用于接受客户端的连接请求
+     */
     private static class ServerBootstrapAcceptor extends ChannelInboundHandlerAdapter {
 
         private final EventLoopGroup childGroup;
