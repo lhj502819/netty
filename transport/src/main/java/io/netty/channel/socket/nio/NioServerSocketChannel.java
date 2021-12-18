@@ -143,6 +143,7 @@ public class NioServerSocketChannel extends AbstractNioMessageChannel
     protected void doBind(SocketAddress localAddress) throws Exception {
         if (PlatformDependent.javaVersion() >= 7) {
             //调用Java原生的ServerSocketChannel绑定ip + 端口
+            //到此服务端的原生Java NIO ServerSocketChannel就绑定完端口了
             javaChannel().bind(localAddress, config.getBacklog());
         } else {
             javaChannel().socket().bind(localAddress, config.getBacklog());

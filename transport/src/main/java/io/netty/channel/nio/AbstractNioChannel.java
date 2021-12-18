@@ -415,6 +415,7 @@ public abstract class AbstractNioChannel extends AbstractChannel {
     @Override
     protected void doBeginRead() throws Exception {
         // Channel.read() or ChannelHandlerContext.read() was called
+        //获取到当前Channel绑定的SelectionKey
         final SelectionKey selectionKey = this.selectionKey;
         if (!selectionKey.isValid()) {
             return;
@@ -423,7 +424,10 @@ public abstract class AbstractNioChannel extends AbstractChannel {
         readPending = true;
 
         final int interestOps = selectionKey.interestOps();
+        //这里由于在注册Channel到EventLoop时(doRegister)，将该Channel感兴趣的事件设置为了0，这里即将开始读了，需要把事件设置回来
+        //0 & 任何数都是0，readInterestOp又是初始化时设置的OP_ACCEPT，因此这里就是把感兴趣的事件设置为OP_ACCEPT
         if ((interestOps & readInterestOp) == 0) {
+            //设置感兴趣时间为NioServerSocket初始化时设置的OP_ACCEPT，服务端可以开始处理客户端的连接请求了
             selectionKey.interestOps(interestOps | readInterestOp);
         }
     }

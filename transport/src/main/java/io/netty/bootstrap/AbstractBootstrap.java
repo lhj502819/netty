@@ -316,6 +316,9 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
             // Registration future is almost always fulfilled already, but just in case it's not.
             final PendingRegistrationPromise promise = new PendingRegistrationPromise(channel);
             regFuture.addListener(new ChannelFutureListener() {
+                /**
+                    这里和{@link io.netty.channel.AbstractChannel.AbstractUnsafe.register0}方法中的safeSetSuccess(promise)进行成功回调对应，如果注册成功，就会回调到这里
+                 */
                 @Override
                 public void operationComplete(ChannelFuture future) throws Exception {
                     Throwable cause = future.cause();
@@ -392,6 +395,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
 
         // This method is invoked before channelRegistered() is triggered.  Give user handlers a chance to set up
         // the pipeline in its channelRegistered() implementation.
+        //在Channel的EventLoop中执行Channel的绑定端口逻辑
         channel.eventLoop().execute(new Runnable() {
             @Override
             public void run() {

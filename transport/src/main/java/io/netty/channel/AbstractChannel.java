@@ -479,7 +479,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                         new IllegalStateException("incompatible event loop type: " + eventLoop.getClass().getName()));
                 return;
             }
-            //设置Channel的EventLoop属性
+            //将Channel和EventLoop绑定
             AbstractChannel.this.eventLoop = eventLoop;
             //在EventLoop中执行注册逻辑
             if (eventLoop.inEventLoop()) {
@@ -530,7 +530,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                 //触发ChannelInitializer执行，进行Handler初始化
                 pipeline.invokeHandlerAddedIfNeeded();
 
-                //回调promise执行成功，在doBind方法中翔regFuture注册的ChannelFutureListener
+                //回调promise执行成功，在doBind方法中regFuture注册的ChannelFutureListener
                 safeSetSuccess(promise);
                 //触发通知已注册事件
                 pipeline.fireChannelRegistered();
@@ -544,6 +544,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                         // again so that we process inbound data.
                         //
                         // See https://github.com/netty/netty/issues/4805
+                        //开始读取操作
                         beginRead();
                     }
                 }
@@ -594,11 +595,20 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                 invokeLater(new Runnable() {
                     @Override
                     public void run() {
+                        //触发已激活事件，之后会调用#beginRead方法
                         pipeline.fireChannelActive();
                     }
                 });
             }
-            //回调通知promise成功，回调的是在前边添加的ChannelFutureListener
+            //回调通知promise成功，回调的是在前边添加的ChannelFutureListener，在创建服务端那里
+            /**
+             * ChannelFuture f = b.bind(PORT).addListener(new ChannelFutureListener() {
+             *                 @Override
+             *                 public void operationComplete(ChannelFuture future) throws Exception {
+             *                     System.out.println("测试Channel绑定成功后回调");
+             *                 }
+             *             }).sync();
+             */
             safeSetSuccess(promise);
         }
 
@@ -870,6 +880,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
 
         @Override
         public final void beginRead() {
+            //判断是否在EventLoop线程中
             assertEventLoop();
 
             try {

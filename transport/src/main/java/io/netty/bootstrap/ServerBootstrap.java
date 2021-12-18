@@ -141,7 +141,7 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
         final Entry<ChannelOption<?>, Object>[] currentChildOptions = newOptionsArray(childOptions);
         final Entry<AttributeKey<?>, Object>[] currentChildAttrs = newAttributesArray(childAttrs);
 
-        //添加ChannelInitializer对象到pipeline中，用于后续初始化，ChannelHandler到pipeline中
+        //添加ChannelInitializer对象到pipeline中，用于后续初始化ChannelHandler到pipeline中
         //为什么使用ChannelInitializer进行初始化？而不是直接添加到pipeline中
         //因为此时Channel还没有注册到EventLoop中，如果调用eventLoop().execute会抛出Exception in thread "main" java.lang.IllegalStateException: channel not registered to an event loop异常
         p.addLast(new ChannelInitializer<Channel>() {
@@ -154,6 +154,7 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
                     pipeline.addLast(handler);
                 }
                 //添加ServerBootstrapAcceptor到pipeline中
+                //ServerBootstrapAcceptor也是一个ChannelHandler，用于处理客户端连接请求
                 ch.eventLoop().execute(new Runnable() {
                     @Override
                     public void run() {
