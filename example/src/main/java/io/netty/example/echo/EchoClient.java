@@ -31,7 +31,7 @@ import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 /**
  * Sends one message when a connection is open and echoes back any received
  * data to the server.  Simply put, the echo client initiates the ping-pong
- * traffic between the echo client and server by sending the first message to
+ * traffic between  the echo client and server by sending the first message to
  * the server.
  */
 public final class EchoClient {
