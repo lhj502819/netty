@@ -55,11 +55,14 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
     private static final InternalLogger logger =
             InternalLoggerFactory.getInstance(SingleThreadEventExecutor.class);
 
-    private static final int ST_NOT_STARTED = 1;
-    private static final int ST_STARTED = 2;
-    private static final int ST_SHUTTING_DOWN = 3;
-    private static final int ST_SHUTDOWN = 4;
-    private static final int ST_TERMINATED = 5;
+    /**
+     * 线程状态
+     */
+    private static final int ST_NOT_STARTED = 1;//未开始
+    private static final int ST_STARTED = 2;//运行中
+    private static final int ST_SHUTTING_DOWN = 3;//正在关闭中
+    private static final int ST_SHUTDOWN = 4;//已关闭
+    private static final int ST_TERMINATED = 5;//已终止
 
     private static final Runnable NOOP_TASK = new Runnable() {
         @Override
@@ -68,33 +71,73 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
         }
     };
 
+    /**
+     * 字段的原子更新器
+     */
     private static final AtomicIntegerFieldUpdater<SingleThreadEventExecutor> STATE_UPDATER =
             AtomicIntegerFieldUpdater.newUpdater(SingleThreadEventExecutor.class, "state");
+
+    /**
+     * 字段原子更新器
+     */
     private static final AtomicReferenceFieldUpdater<SingleThreadEventExecutor, ThreadProperties> PROPERTIES_UPDATER =
             AtomicReferenceFieldUpdater.newUpdater(
                     SingleThreadEventExecutor.class, ThreadProperties.class, "threadProperties");
 
+    /**
+     * 任务队列
+     */
     private final Queue<Runnable> taskQueue;
 
+    /**
+     * 线程
+     */
     private volatile Thread thread;
+    /**
+     * 线程属性
+     */
     @SuppressWarnings("unused")
     private volatile ThreadProperties threadProperties;
+    /**
+     * 执行器
+     */
     private final Executor executor;
+    /**
+     * 线程是否已经被打断
+     */
     private volatile boolean interrupted;
 
     private final CountDownLatch threadLock = new CountDownLatch(1);
     private final Set<Runnable> shutdownHooks = new LinkedHashSet<Runnable>();
     private final boolean addTaskWakesUp;
+    /**
+     * 最大等待执行任务数量，即{@link taskQueue}队列的大小
+     */
     private final int maxPendingTasks;
+    /**
+     * 拒绝执行处理器
+     */
     private final RejectedExecutionHandler rejectedExecutionHandler;
 
+    /**
+     * 最后执行时间
+     */
     private long lastExecutionTime;
 
+    /**
+     * 状态
+     */
     @SuppressWarnings({ "FieldMayBeFinal", "unused" })
     private volatile int state = ST_NOT_STARTED;
 
     private volatile long gracefulShutdownQuietPeriod;
+    /**
+     * 优雅关闭的超时时间
+     */
     private volatile long gracefulShutdownTimeout;
+    /**
+     * 优雅关闭的开始时间
+     */
     private long gracefulShutdownStartTime;
 
     private final Promise<?> terminationFuture = new DefaultPromise<Void>(GlobalEventExecutor.INSTANCE);
