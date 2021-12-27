@@ -47,13 +47,25 @@ public class Bootstrap extends AbstractBootstrap<Bootstrap, Channel> {
 
     private static final InternalLogger logger = InternalLoggerFactory.getInstance(Bootstrap.class);
 
+    /**
+     * 默认地址解析器对象
+     */
     private static final AddressResolverGroup<?> DEFAULT_RESOLVER = DefaultAddressResolverGroup.INSTANCE;
 
+    /**
+     * 配置类对象
+     */
     private final BootstrapConfig config = new BootstrapConfig(this);
 
+    /**
+     * 地址解析器对象
+     */
     @SuppressWarnings("unchecked")
     private volatile AddressResolverGroup<SocketAddress> resolver =
             (AddressResolverGroup<SocketAddress>) DEFAULT_RESOLVER;
+    /**
+     * 连接地址（服务端地址）
+     */
     private volatile SocketAddress remoteAddress;
 
     public Bootstrap() { }
@@ -135,6 +147,7 @@ public class Bootstrap extends AbstractBootstrap<Bootstrap, Channel> {
      */
     public ChannelFuture connect(SocketAddress remoteAddress) {
         ObjectUtil.checkNotNull(remoteAddress, "remoteAddress");
+        //校验必要参数
         validate();
         return doResolveAndConnect(remoteAddress, config.localAddress());
     }
@@ -150,17 +163,22 @@ public class Bootstrap extends AbstractBootstrap<Bootstrap, Channel> {
 
     /**
      * @see #connect()
+     * 解析远程地址，异步连接，如果需要同步，需要调用{@link ChannelFuture#sync()}
      */
     private ChannelFuture doResolveAndConnect(final SocketAddress remoteAddress, final SocketAddress localAddress) {
+        //创建、注册Channel对象（NioSocketChannel）
         final ChannelFuture regFuture = initAndRegister();
         final Channel channel = regFuture.channel();
 
+        //和服务端类似，由于Channel的注册是异步的，因此有可能成功有可能不成功，需要针对这两种情况进行不同的处理
         if (regFuture.isDone()) {
+            //如果Channel注册成功
             if (!regFuture.isSuccess()) {
                 return regFuture;
             }
             return doResolveAndConnect0(channel, remoteAddress, localAddress, channel.newPromise());
         } else {
+            //如果还没有注册成功，则添加监听器，在注册完成后进行回调执行 #doResolveAndConnect0()
             // Registration future is almost always fulfilled already, but just in case it's not.
             final PendingRegistrationPromise promise = new PendingRegistrationPromise(channel);
             regFuture.addListener(new ChannelFutureListener() {
@@ -188,9 +206,11 @@ public class Bootstrap extends AbstractBootstrap<Bootstrap, Channel> {
     private ChannelFuture doResolveAndConnect0(final Channel channel, SocketAddress remoteAddress,
                                                final SocketAddress localAddress, final ChannelPromise promise) {
         try {
+            //获取Channel注册的EventLoop
             final EventLoop eventLoop = channel.eventLoop();
             AddressResolver<SocketAddress> resolver;
             try {
+
                 resolver = this.resolver.getResolver(eventLoop);
             } catch (Throwable cause) {
                 channel.close();
@@ -203,30 +223,39 @@ public class Bootstrap extends AbstractBootstrap<Bootstrap, Channel> {
                 return promise;
             }
 
+            //解析远程地址(异步的)
             final Future<SocketAddress> resolveFuture = resolver.resolve(remoteAddress);
 
+            /**
+             * 因为解析地址是异步的，因此有可能解析完成了，有可能没完成，就有分为以下两个部分 232行和249行
+             */
             if (resolveFuture.isDone()) {
                 final Throwable resolveFailureCause = resolveFuture.cause();
 
                 if (resolveFailureCause != null) {
+                    // 解析失败，关闭Channel，回调通知promise异常
                     // Failed to resolve immediately
                     channel.close();
                     promise.setFailure(resolveFailureCause);
                 } else {
                     // Succeeded to resolve immediately; cached? (or did a blocking lookup)
+                    // 连接
                     doConnect(resolveFuture.getNow(), localAddress, promise);
                 }
                 return promise;
             }
 
+            //如果解析不成功，则添加监听器等待解析成功
             // Wait until the name resolution is finished.
             resolveFuture.addListener(new FutureListener<SocketAddress>() {
                 @Override
                 public void operationComplete(Future<SocketAddress> future) throws Exception {
                     if (future.cause() != null) {
+                        // 解析失败，关闭Channel，回调通知promise异常
                         channel.close();
                         promise.setFailure(future.cause());
                     } else {
+                        // 连接
                         doConnect(future.getNow(), localAddress, promise);
                     }
                 }

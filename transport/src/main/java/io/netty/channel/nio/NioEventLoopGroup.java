@@ -157,6 +157,8 @@ public class NioEventLoopGroup extends MultithreadEventLoopGroup {
     /**
      * Replaces the current {@link Selector}s of the child event loops with newly created {@link Selector}s to work
      * around the  infamous epoll 100% CPU bug.
+     *
+     * 重建Selector
      */
     public void rebuildSelectors() {
         for (EventExecutor e: this) {

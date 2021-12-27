@@ -244,12 +244,15 @@ public abstract class AbstractNioChannel extends AbstractChannel {
             }
 
             try {
+                //假设已经有正在连接的远程地址，则抛出异常，只能同时连接一个远程地址
                 if (connectPromise != null) {
                     // Already a connect in process.
                     throw new ConnectionPendingException();
                 }
 
+                //判断当前Channel是否处于激活，调试时这里返回的是false，Channel已经打开，但是还没有连接远程地址 ch.isOpen() && ch.isConnected()
                 boolean wasActive = isActive();
+                //执行连接
                 if (doConnect(remoteAddress, localAddress)) {
                     fulfillConnectPromise(promise, wasActive);
                 } else {
@@ -257,6 +260,7 @@ public abstract class AbstractNioChannel extends AbstractChannel {
                     requestedRemoteAddress = remoteAddress;
 
                     // Schedule connect timeout.
+                    //使用EventLoop发起定时任务，监听连接远程地址超时，如果超时，则回调通知promise
                     int connectTimeoutMillis = config().getConnectTimeoutMillis();
                     if (connectTimeoutMillis > 0) {
                         connectTimeoutFuture = eventLoop().schedule(new Runnable() {
@@ -271,14 +275,16 @@ public abstract class AbstractNioChannel extends AbstractChannel {
                             }
                         }, connectTimeoutMillis, TimeUnit.MILLISECONDS);
                     }
-
+                    //添加监听器，监听远程地址取消
                     promise.addListener(new ChannelFutureListener() {
                         @Override
                         public void operationComplete(ChannelFuture future) throws Exception {
                             if (future.isCancelled()) {
+                                //如果远程地址已经取消，则取消连接超时定时任务
                                 if (connectTimeoutFuture != null) {
                                     connectTimeoutFuture.cancel(false);
                                 }
+                                //将connectPromise置空
                                 connectPromise = null;
                                 close(voidPromise());
                             }
@@ -291,6 +297,9 @@ public abstract class AbstractNioChannel extends AbstractChannel {
             }
         }
 
+        /**
+         * 通知连接成功
+         */
         private void fulfillConnectPromise(ChannelPromise promise, boolean wasActive) {
             if (promise == null) {
                 // Closed via cancellation and the promise has been notified already.
@@ -299,14 +308,27 @@ public abstract class AbstractNioChannel extends AbstractChannel {
 
             // Get the state as trySuccess() may trigger an ChannelFutureListener that will close the Channel.
             // We still need to ensure we call fireChannelActive() in this case.
+            //判断Channel是否处于激活状态，这里调试时返回的true  Channel已经打开已经已经连接成功 ch.isOpen() && ch.isConnected()
             boolean active = isActive();
 
             // trySuccess() will return false if a user cancelled the connection attempt.
+            //通知promise连接成功，回调的是发起连接后添加的监听器
+            /**
+             * //启动客户端，连接服务器，并同步等待
+             *             ChannelFuture f = b.connect(HOST, PORT).sync().addListener(new ChannelFutureListener() {
+             *                 @Override
+             *                 public void operationComplete(ChannelFuture future) throws Exception {
+             *                     System.out.println("连接成功...");
+             *                 }
+             *             });
+             */
             boolean promiseSet = promise.trySuccess();
 
             // Regardless if the connection attempt was cancelled, channelActive() event should be triggered,
             // because what happened is what happened.
+            // 如果是Channel是新激活的，显然这里是新激活的
             if (!wasActive && active) {
+                //触发Channel激活事件，和服务端一样，这里会调用 AbstractUnsafe#beginRead()，会设置感兴趣的事件为创建NioSocketChannel时设置的OP_READ，客户端可以读取服务端发送来的数据
                 pipeline().fireChannelActive();
             }
 
@@ -316,6 +338,11 @@ public abstract class AbstractNioChannel extends AbstractChannel {
             }
         }
 
+        /**
+         * 通知连接异常
+         * @param promise
+         * @param cause
+         */
         private void fulfillConnectPromise(ChannelPromise promise, Throwable cause) {
             if (promise == null) {
                 // Closed via cancellation and the promise has been notified already.
@@ -323,29 +350,40 @@ public abstract class AbstractNioChannel extends AbstractChannel {
             }
 
             // Use tryFailure() instead of setFailure() to avoid the race against cancel().
+            //回调通知promise异常
             promise.tryFailure(cause);
             closeIfClosed();
         }
 
+        /**
+         * 当Selector轮询到ON_CONNECT事件后，会触发此操作
+         */
         @Override
         public final void finishConnect() {
             // Note this method is invoked by the event loop only if the connection attempt was
             // neither cancelled nor timed out.
-
+            //判断是否在EventLoop线程中
             assert eventLoop().inEventLoop();
 
             try {
+                //获得当前Channel的激活状态，这里还是会返回false，因为还是没有连接完成，在doFinishConnect中才会调用Java Channel的finishConnect
+                //这里设计的就比较巧妙了，先获取一次Channel的状态，肯定会是未激活，然后去执行激活操作，这样在fulfillConnectPromise中就可以表示出当前Channel是否新激活的
                 boolean wasActive = isActive();
+                //调用Java SocketChannel的finishConnect方法
                 doFinishConnect();
+                //通知connectPromise连接成功
                 fulfillConnectPromise(connectPromise, wasActive);
             } catch (Throwable t) {
+                //通知connectPromise连接异常
                 fulfillConnectPromise(connectPromise, annotateConnectException(t, requestedRemoteAddress));
             } finally {
                 // Check for null as the connectTimeoutFuture is only created if a connectTimeoutMillis > 0 is used
                 // See https://github.com/netty/netty/issues/1770
+                //取消连接超时定时任务
                 if (connectTimeoutFuture != null) {
                     connectTimeoutFuture.cancel(false);
                 }
+                //置空connectPromise
                 connectPromise = null;
             }
         }

@@ -16,11 +16,7 @@
 package io.netty.example.echo;
 
 import io.netty.bootstrap.Bootstrap;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.ChannelOption;
-import io.netty.channel.ChannelPipeline;
-import io.netty.channel.EventLoopGroup;
+import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
@@ -54,13 +50,14 @@ public final class EchoClient {
         // Configure the client.
         EventLoopGroup group = new NioEventLoopGroup();
         try {
+            //这里使用的是Bootstrap，服务端使用的是ServerBootstrap
             Bootstrap b = new Bootstrap();
             b.group(group)
-             .channel(NioSocketChannel.class)
-             .option(ChannelOption.TCP_NODELAY, true)
+             .channel(NioSocketChannel.class)//这里使用的是NioSocketChannel，服务端使用的是NioServerSocketChannel
+             .option(ChannelOption.TCP_NODELAY, true)//设置Channel的可选项
              .handler(new ChannelInitializer<SocketChannel>() {
                  @Override
-                 public void initChannel(SocketChannel ch) throws Exception {
+                 public void initChannel(SocketChannel ch) throws Exception { //设置Channel的处理器
                      ChannelPipeline p = ch.pipeline();
                      if (sslCtx != null) {
                          p.addLast(sslCtx.newHandler(ch.alloc(), HOST, PORT));
@@ -70,10 +67,15 @@ public final class EchoClient {
                  }
              });
 
-            // Start the client.
-            ChannelFuture f = b.connect(HOST, PORT).sync();
+            //启动客户端，连接服务器，并同步等待
+            ChannelFuture f = b.connect(HOST, PORT).sync().addListener(new ChannelFutureListener() {
+                @Override
+                public void operationComplete(ChannelFuture future) throws Exception {
+                    System.out.println("连接成功...");
+                }
+            });
 
-            // Wait until the connection is closed.
+            //监听客户端关闭，并阻塞等待
             f.channel().closeFuture().sync();
         } finally {
             // Shut down the event loop to terminate all threads.
