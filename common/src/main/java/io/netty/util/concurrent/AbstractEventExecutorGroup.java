@@ -88,7 +88,7 @@ public abstract class AbstractEventExecutorGroup implements EventExecutorGroup {
     }
 
     /**
-     * 在EventExecutor中执行多个任务，并且所有的任务使用同一个EventExecutor
+     * 在 EventExecutor中执行多个任务，并且所有的任务使用同一个EventExecutor
      */
     @Override
     public <T> List<java.util.concurrent.Future<T>> invokeAll(Collection<? extends Callable<T>> tasks)
