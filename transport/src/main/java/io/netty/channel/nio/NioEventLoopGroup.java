@@ -34,6 +34,8 @@ import java.util.concurrent.ThreadFactory;
 
 /**
  * {@link MultithreadEventLoopGroup} implementations which is used for NIO {@link Selector} based {@link Channel}s.
+ *
+ * 基于Java NIO Selector的Executor实现
  */
 public class NioEventLoopGroup extends MultithreadEventLoopGroup {
 
@@ -166,6 +168,9 @@ public class NioEventLoopGroup extends MultithreadEventLoopGroup {
         }
     }
 
+    /**
+     * 创建NioEventLoop，用来执行事件，这里的args就是从构造方法中传到父类的，父类中又调用子类实现，前后呼应有没有，虽然是前后呼应，但我也没感觉到这种设计的优点^_^
+     */
     @Override
     protected EventLoop newChild(Executor executor, Object... args) throws Exception {
         SelectorProvider selectorProvider = (SelectorProvider) args[0];

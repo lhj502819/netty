@@ -28,6 +28,7 @@ import static io.netty.util.concurrent.AbstractEventExecutor.*;
 
 /**
  * Abstract base class for {@link EventExecutorGroup} implementations.
+ * 对接口进行了抽象实现，但并未具体实现，比如{@link #submit(Runnable)} 只是提供了提交任务的方式，但具体实现还是由子类去实现
  */
 public abstract class AbstractEventExecutorGroup implements EventExecutorGroup {
     @Override

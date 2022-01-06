@@ -131,7 +131,7 @@ public abstract class MultithreadEventExecutorGroup extends AbstractEventExecuto
             }
         }
 
-        //创建EventExecutor选择器
+        //创建 EventExecutor 选择器
         chooser = chooserFactory.newChooser(children);
 
         //创建监听器，用于监听EventExecutor终止,
@@ -150,7 +150,7 @@ public abstract class MultithreadEventExecutorGroup extends AbstractEventExecuto
             e.terminationFuture().addListener(terminationListener);
         }
 
-        //创建不可变的EventExecutor数组
+        //创建不可变的 EventExecutor 数组
         Set<EventExecutor> childrenSet = new LinkedHashSet<EventExecutor>(children.length);
         Collections.addAll(childrenSet, children);
         readonlyChildren = Collections.unmodifiableSet(childrenSet);
