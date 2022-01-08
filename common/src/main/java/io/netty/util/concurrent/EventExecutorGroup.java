@@ -26,13 +26,15 @@ import java.util.concurrent.TimeUnit;
  * via its {@link #next()} method. Besides this, it is also responsible for handling their
  * life-cycle and allows shutting them down in a global fashion.
  *
- * 就是用来存储EventLoopExecutor，提供获取EventLoopExecutor功能并批量操作它们
+ * 就是用来存储EventLoopExecutor，提供获取EventLoopExecutor功能并批量操作它们，包括取、停
  */
 public interface EventExecutorGroup extends ScheduledExecutorService, Iterable<EventExecutor> {
 
     /**
      * Returns {@code true} if and only if all {@link EventExecutor}s managed by this {@link EventExecutorGroup}
      * are being {@linkplain #shutdownGracefully() shut down gracefully} or was {@linkplain #isShutdown() shut down}.
+     *
+     * 如果EventExecutor正在关闭或者已关闭就返回true
      */
     boolean isShuttingDown();
 
@@ -40,6 +42,8 @@ public interface EventExecutorGroup extends ScheduledExecutorService, Iterable<E
      * Shortcut method for {@link #shutdownGracefully(long, long, TimeUnit)} with sensible default values.
      *
      * @return the {@link #terminationFuture()}
+     *
+     * 优雅关闭，返回关闭的Future
      */
     Future<?> shutdownGracefully();
 
@@ -49,6 +53,9 @@ public interface EventExecutorGroup extends ScheduledExecutorService, Iterable<E
      * Unlike {@link #shutdown()}, graceful shutdown ensures that no tasks are submitted for <i>'the quiet period'</i>
      * (usually a couple seconds) before it shuts itself down.  If a task is submitted during the quiet period,
      * it is guaranteed to be accepted and the quiet period will start over.
+     *
+     * 优雅关闭，方法被调用后isShuttingDown会返回true，quietPeriod时间内没有任务被提交才会真正的shutdown，如果quietPeriod时间内有任务提交进来，那quietPeriod就重新计算，
+     *  但也不是无限的等待，可以设置最大等待时间timeout，超过timeout无论是否有任务提交进来都shutdown
      *
      * @param quietPeriod the quiet period as described in the documentation
      * @param timeout     the maximum amount of time to wait until the executor is {@linkplain #shutdown()}
