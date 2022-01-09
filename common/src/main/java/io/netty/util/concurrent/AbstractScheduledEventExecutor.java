@@ -29,7 +29,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * Abstract base class for {@link EventExecutor}s that want to support scheduling.
  *
- * 看名字就知道这哥们是干啥的了，负责定时调度相关的
+ * 看名字就知道这哥们是干啥的了，负责定时调度相关的，并且这是后来抽出来的一位，别问我咋知道，我去翻了老版本哈哈，是在{@link SingleThreadEventExecutor}中实现的
  */
 public abstract class AbstractScheduledEventExecutor extends AbstractEventExecutor {
     private static final Comparator<ScheduledFutureTask<?>> SCHEDULED_FUTURE_TASK_COMPARATOR =

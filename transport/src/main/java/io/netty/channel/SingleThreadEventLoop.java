@@ -28,13 +28,19 @@ import java.util.concurrent.ThreadFactory;
 
 /**
  * Abstract base class for {@link EventLoop}s that execute all its submitted tasks in a single thread.
- * 基于单线程的EventLoop抽象类，单线程执行所有的任务
+ * 基于单线程的EventLoop抽象类，单线程执行所有的任务，主要增加了Channel注册到EventLoop上
  */
 public abstract class SingleThreadEventLoop extends SingleThreadEventExecutor implements EventLoop {
 
+    /**
+     * 任务队列默认最大容量
+     */
     protected static final int DEFAULT_MAX_PENDING_TASKS = Math.max(16,
             SystemPropertyUtil.getInt("io.netty.eventLoop.maxPendingTasks", Integer.MAX_VALUE));
 
+    /**
+     * 尾部队列，执行在taskQueue之后
+     */
     private final Queue<Runnable> tailTasks;
 
     protected SingleThreadEventLoop(EventLoopGroup parent, ThreadFactory threadFactory, boolean addTaskWakesUp) {
@@ -78,13 +84,16 @@ public abstract class SingleThreadEventLoop extends SingleThreadEventExecutor im
 
     @Override
     public ChannelFuture register(Channel channel) {
+        //通过Channel和EventLoop创建ChannelPromise，通过ChannelPromise对象就能实现对异步注册过程的监听
         return register(new DefaultChannelPromise(channel, this));
     }
 
     @Override
     public ChannelFuture register(final ChannelPromise promise) {
         ObjectUtil.checkNotNull(promise, "promise");
+        //注册Channel到EventLoop上
         promise.channel().unsafe().register(this, promise);
+        //返回Promise
         return promise;
     }
 
@@ -105,14 +114,15 @@ public abstract class SingleThreadEventLoop extends SingleThreadEventExecutor im
     @UnstableApi
     public final void executeAfterEventLoopIteration(Runnable task) {
         ObjectUtil.checkNotNull(task, "task");
+        //如果已经关闭或者正在关闭，则拒绝
         if (isShutdown()) {
             reject();
         }
-
+        //添加到尾部任务队列
         if (!tailTasks.offer(task)) {
             reject(task);
         }
-
+        //如果不是懒执行的任务，则唤醒线程
         if (!(task instanceof LazyRunnable) && wakesUpForTask(task)) {
             wakeup(inEventLoop());
         }
@@ -124,6 +134,8 @@ public abstract class SingleThreadEventLoop extends SingleThreadEventExecutor im
      * @param task to be removed.
      *
      * @return {@code true} if the task was removed as a result of this call.
+     *
+     * 移出指定任务，不稳定的
      */
     @UnstableApi
     final boolean removeAfterEventLoopIterationTask(Runnable task) {
