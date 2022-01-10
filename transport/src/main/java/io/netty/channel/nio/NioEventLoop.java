@@ -60,10 +60,19 @@ public final class NioEventLoop extends SingleThreadEventLoop {
 
     private static final int CLEANUP_INTERVAL = 256; // XXX Hard-coded value, but won't need customization.
 
+    /**
+     * 是否禁用SelectionKey的优化，默认为禁用
+     */
     private static final boolean DISABLE_KEY_SET_OPTIMIZATION =
             SystemPropertyUtil.getBoolean("io.netty.noKeySetOptimization", false);
 
+    /**
+     * 少于N值不开启空轮询重建新的Selector对象的功能
+     */
     private static final int MIN_PREMATURE_SELECTOR_RETURNS = 3;
+    /**
+     * NIO Selector空轮询N次后，重建新的Selector对象
+     */
     private static final int SELECTOR_AUTO_REBUILD_THRESHOLD;
 
     private final IntSupplier selectNowSupplier = new IntSupplier() {
@@ -112,12 +121,18 @@ public final class NioEventLoop extends SingleThreadEventLoop {
     }
 
     /**
-     * The NIO {@link Selector}.
+     * The NIO {@link Selector}，经过Netty包装优化过的
      */
     private Selector selector;
     private Selector unwrappedSelector;
+    /**
+     * 注册的SelectionKey集合，Netty自己实现的，对SelectionKey进行了包装优化
+     */
     private SelectedSelectionKeySet selectedKeys;
 
+    /**
+     * 用于创建Selector
+     */
     private final SelectorProvider provider;
 
     private static final long AWAKE = -1L;
@@ -128,11 +143,28 @@ public final class NioEventLoop extends SingleThreadEventLoop {
     //    NONE             when EL is waiting with no wakeup scheduled
     //    other value T    when EL is waiting with wakeup scheduled at time T
     private final AtomicLong nextWakeupNanos = new AtomicLong(AWAKE);
-
+    /**
+     * Select策略
+     */
     private final SelectStrategy selectStrategy;
 
+    /**
+     * 处理Channel的就绪事件，占处理任务的总时间比例
+     *  在NioEventLoop中，有三种类型的任务
+     *      1：Channel的就绪IO事件
+     *      2：普通任务
+     *      3：定时任务
+     *    ioRatio表示处理Channel的就绪IO实践占处理总时间的比例，可是为什么会有这个变量呢？
+     */
     private volatile int ioRatio = 50;
+
+    /**
+     * 取消SelectionKey的数量
+     */
     private int cancelledKeys;
+    /**
+     * 是否需要再次select Selector对象
+     */
     private boolean needsToSelectAgain;
 
     NioEventLoop(NioEventLoopGroup parent, Executor executor, SelectorProvider selectorProvider,
@@ -142,11 +174,18 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                 rejectedExecutionHandler);
         this.provider = ObjectUtil.checkNotNull(selectorProvider, "selectorProvider");
         this.selectStrategy = ObjectUtil.checkNotNull(strategy, "selectStrategy");
+        //创建Selector，包装过后的
         final SelectorTuple selectorTuple = openSelector();
         this.selector = selectorTuple.selector;
+        //获取未包装的Selector
         this.unwrappedSelector = selectorTuple.unwrappedSelector;
     }
 
+    /**
+     * 创建任务队列
+     * @param queueFactory
+     * @return
+     */
     private static Queue<Runnable> newTaskQueue(
             EventLoopTaskQueueFactory queueFactory) {
         if (queueFactory == null) {
@@ -277,6 +316,9 @@ public final class NioEventLoop extends SingleThreadEventLoop {
         return newTaskQueue0(maxPendingTasks);
     }
 
+    /**
+     * 这里NioEventLoop使用的是MpscQueue，是一个应对多线程生产任务，单线程消费任务的场景的，后边我们会有专门的文章进行讲解
+     */
     private static Queue<Runnable> newTaskQueue0(int maxPendingTasks) {
         // This event loop never calls takeTask()
         return maxPendingTasks == Integer.MAX_VALUE ? PlatformDependent.<Runnable>newMpscQueue()
@@ -342,6 +384,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
      * The default value is {@code 50}, which means the event loop will try to spend the same amount of time for I/O
      * as for non-I/O tasks. The lower the number the more time can be spent on non-I/O tasks. If value set to
      * {@code 100}, this feature will be disabled and event loop will not attempt to balance I/O and non-I/O tasks.
+     * 设置IoRatio，当设置为100时表示关闭此功能，并且EventLoop也将不会对I/O和非I/O任务进行自平衡
      */
     public void setIoRatio(int ioRatio) {
         if (ioRatio <= 0 || ioRatio > 100) {
@@ -353,9 +396,11 @@ public final class NioEventLoop extends SingleThreadEventLoop {
     /**
      * Replaces the current {@link Selector} of this event loop with newly created {@link Selector}s to work
      * around the infamous epoll 100% CPU bug.
+     * 重建Selector对象来解决JDK epoll的100% CPU的bug
      */
     public void rebuildSelector() {
         if (!inEventLoop()) {
+            //执行一个事件
             execute(new Runnable() {
                 @Override
                 public void run() {
@@ -434,6 +479,9 @@ public final class NioEventLoop extends SingleThreadEventLoop {
         }
     }
 
+    /**
+     * 处理任务，so so important
+     */
     @Override
     protected void run() {
         int selectCnt = 0;
@@ -491,11 +539,14 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                         ranTasks = runAllTasks();
                     }
                 } else if (strategy > 0) {
+                    //记录当前时间
                     final long ioStartTime = System.nanoTime();
                     try {
+                        //处理Channel的就绪事件
                         processSelectedKeys();
                     } finally {
                         // Ensure we always run tasks.
+                        //以处理Channel的就绪事件所需时间为基准计算执行所有任务需要的时间
                         final long ioTime = System.nanoTime() - ioStartTime;
                         ranTasks = runAllTasks(ioTime * (100 - ioRatio) / ioRatio);
                     }
