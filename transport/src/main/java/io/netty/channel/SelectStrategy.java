@@ -22,19 +22,23 @@ import io.netty.util.IntSupplier;
  *
  * Provides the ability to control the behavior of the select loop. For example a blocking select
  * operation can be delayed or skipped entirely if there are events to process immediately.
+ * 选择Select的策略接口
  */
 public interface SelectStrategy {
 
     /**
      * Indicates a blocking select should follow.
+     * 表示使用阻塞Select的策略
      */
     int SELECT = -1;
     /**
      * Indicates the IO loop should be retried, no blocking select to follow directly.
+     * 表示需要进行重试的策略
      */
     int CONTINUE = -2;
     /**
      * Indicates the IO loop to poll for new events without blocking.
+     *
      */
     int BUSY_WAIT = -3;
 

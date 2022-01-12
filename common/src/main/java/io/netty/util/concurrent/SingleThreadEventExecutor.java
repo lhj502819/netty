@@ -571,7 +571,7 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
 
             // Check timeout every 64 tasks because nanoTime() is relatively expensive.
             // XXX: Hard-coded value - will make it configurable if it is really a problem.
-            //每64个任务判断一次超时，nanoTime()方法太昂贵
+            // 每64个任务判断一次超时，nanoTime()方法太昂贵
             if ((runTasks & 0x3F) == 0) {
                 lastExecutionTime = ScheduledFutureTask.nanoTime();
                 if (lastExecutionTime >= deadline) {
@@ -1150,7 +1150,7 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
                 //更新最后执行任务时间
                 updateLastExecutionTime();
                 try {
-                    //执行任务
+                    //执行任务(NioEventLoop)
                     SingleThreadEventExecutor.this.run();
                     //标记任务执行成功
                     success = true;
