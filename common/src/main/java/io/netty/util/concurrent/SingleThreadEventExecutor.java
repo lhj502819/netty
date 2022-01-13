@@ -550,9 +550,10 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
      * the tasks in the task queue and returns if it ran longer than {@code timeoutNanos}.
      *
      * 执行所有的任务，与{@link #runAllTasks()}不同的是增加了任务的执行超时时间，注意是整个任务队列所有任务的执行时间
+     * @return 有任务执行就会返回true
      */
     protected boolean runAllTasks(long timeoutNanos) {
-        //还是将所有的定时任务添加到任务队列中
+        //将所有的定时任务添加到任务队列中
         fetchFromScheduledTaskQueue();
         Runnable task = pollTask();
         if (task == null) {
@@ -893,6 +894,7 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
         }
         //运行未执行的任务
         if (runAllTasks() || runShutdownHooks()) {
+            //如果有执行了任务
             if (isShutdown()) {
                 // Executor shut down - no new tasks anymore.
                 return true;
@@ -963,7 +965,7 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
     }
 
     /**
-     * 执行单个任务
+     * 执行单个任务（外部线程调用execute方法添加任务）
      * @param immediate 是否立即执行
      */
     private void execute(Runnable task, boolean immediate) {

@@ -61,7 +61,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
     private static final int CLEANUP_INTERVAL = 256; // XXX Hard-coded value, but won't need customization.
 
     /**
-     * 是否禁用SelectionKey的优化，默认为禁用
+     * 是否禁用SelectionKey的优化，默认为 false
      */
     private static final boolean DISABLE_KEY_SET_OPTIMIZATION =
             SystemPropertyUtil.getBoolean("io.netty.noKeySetOptimization", false);
@@ -71,7 +71,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
      */
     private static final int MIN_PREMATURE_SELECTOR_RETURNS = 3;
     /**
-     * NIO Selector空轮询N次后，重建新的Selector对象
+     * NIO Selector空轮询N次后，重建新的Selector对象，默认值为512，如果设置小于3则表示不开启重建 Selector
      */
     private static final int SELECTOR_AUTO_REBUILD_THRESHOLD;
 
@@ -217,7 +217,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
             throw new ChannelException("failed to open a new selector", e);
         }
         /**
-         * 判断是否开启SelectionKeySet优化，默认是关闭的
+         * 判断是否关闭SelectionKeySet优化，默认是false，不关闭
          */
         if (DISABLE_KEY_SET_OPTIMIZATION) {
             return new SelectorTuple(unwrappedSelector);
@@ -403,7 +403,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
     /**
      * Replaces the current {@link Selector} of this event loop with newly created {@link Selector}s to work
      * around the infamous epoll 100% CPU bug.
-     * 重建Selector对象来解决JDK epoll的100% CPU的bug
+     * 重建Selector对象来解决JDK epoll的100% CPU的bug，其实Netty并没有解决JDK NIO这个问题，只是进行了规避
      */
     public void rebuildSelector() {
         if (!inEventLoop()) {
@@ -424,6 +424,9 @@ public final class NioEventLoop extends SingleThreadEventLoop {
         return selector.keys().size() - cancelledKeys;
     }
 
+    /**
+     * 创建一个新的Selector，将之前注册到老的selector上的Channel重新转移到新的Selector上，并将老的Selector关闭
+     */
     private void rebuildSelector0() {
         final Selector oldSelector = selector;
         final SelectorTuple newSelectorTuple;
@@ -532,7 +535,9 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                 } catch (IOException e) {
                     // If we receive an IOException here its because the Selector is messed up. Let's rebuild
                     // the selector and retry. https://github.com/netty/netty/issues/8566
+                    //重建Selector
                     rebuildSelector0();
+                    //重置计数
                     selectCnt = 0;
                     handleLoopException(e);
                     continue;
@@ -570,7 +575,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                 } else {
                     ranTasks = runAllTasks(0); // This will run the minimum number of tasks
                 }
-
+                //如果有任务执行过了或者有任务待执行，则重置select计数
                 if (ranTasks || strategy > 0) {
                     if (selectCnt > MIN_PREMATURE_SELECTOR_RETURNS && logger.isDebugEnabled()) {
                         logger.debug("Selector.select() returned prematurely {} times in a row for Selector {}.",
@@ -594,7 +599,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                 // Always handle shutdown even if the loop processing threw an exception.
                 try {
                     if (isShuttingDown()) {
-                        //如果EventLoop状态是正在关闭、已关闭、已终止，则执行关闭逻辑
+                        //如果EventLoop状态是正在关闭、已关闭、已终止，则执行关闭逻辑，关闭Channel和Selector的绑定，关闭Channel
                         closeAll();
                         //确认是否可以关闭了
                         if (confirmShutdown()) {
@@ -612,8 +617,13 @@ public final class NioEventLoop extends SingleThreadEventLoop {
     }
 
     // returns true if selectCnt should be reset
+
+    /**
+     * 如果已经达到了重建Selector的阈值，则会进行重建Selector，返回true，将select计数重置
+     */
     private boolean unexpectedSelectorWakeup(int selectCnt) {
         if (Thread.interrupted()) {
+            //如果线程被打断
             // Thread was interrupted so reset selected keys and break so we not run into a busy loop.
             // As this is most likely a bug in the handler of the user or it's client library we will
             // also log it.
@@ -626,10 +636,12 @@ public final class NioEventLoop extends SingleThreadEventLoop {
             }
             return true;
         }
+        //判断是否达到了重建Selector的阈值
         if (SELECTOR_AUTO_REBUILD_THRESHOLD > 0 &&
                 selectCnt >= SELECTOR_AUTO_REBUILD_THRESHOLD) {
             // The selector returned prematurely many times in a row.
             // Rebuild the selector to work around the problem.
+            // Selector连续多次提前返回
             logger.warn("Selector.select() returned prematurely {} times in a row; rebuilding Selector {}.",
                     selectCnt, selector);
             rebuildSelector();
@@ -823,6 +835,9 @@ public final class NioEventLoop extends SingleThreadEventLoop {
         }
     }
 
+    /**
+     * 关闭连接的Channel
+     */
     private void closeAll() {
         selectAgain();
         Set<SelectionKey> keys = selector.keys();
@@ -852,6 +867,10 @@ public final class NioEventLoop extends SingleThreadEventLoop {
         }
     }
 
+    /**
+     * 在外部线程添加任务的时候，会调用wakeup方法来唤醒
+     * @param inEventLoop
+     */
     @Override
     protected void wakeup(boolean inEventLoop) {
         if (!inEventLoop && nextWakeupNanos.getAndSet(AWAKE) != AWAKE) {
