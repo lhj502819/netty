@@ -52,6 +52,7 @@ public final class ThreadExecutorMap {
         ObjectUtil.checkNotNull(executor, "executor");
         ObjectUtil.checkNotNull(eventExecutor, "eventExecutor");
         return new Executor() {
+            //创建一个内部类，还是交给Executor去执行的，NioEventLoop默认使用的Executor是ThreadPerTaskExecutor
             @Override
             public void execute(final Runnable command) {
                 executor.execute(apply(command, eventExecutor));

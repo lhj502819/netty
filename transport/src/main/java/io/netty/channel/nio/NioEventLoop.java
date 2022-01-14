@@ -526,7 +526,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                         } finally {
                             // This update is just to help block unnecessary selector wakeups
                             // so use of lazySet is ok (no race condition)
-                            //延迟设置线程的唤醒时间阻塞不必要的Select唤醒
+                            // 延迟设置线程的唤醒时间,阻塞不必要的Select唤醒
                             nextWakeupNanos.lazySet(AWAKE);
                         }
                         // fall through
@@ -663,6 +663,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
     }
 
     private void processSelectedKeys() {
+        //判断是否使用的优化过的SelectionKey
         if (selectedKeys != null) {
             processSelectedKeysOptimized();
         } else {
