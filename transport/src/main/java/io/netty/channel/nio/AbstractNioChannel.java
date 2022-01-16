@@ -426,8 +426,8 @@ public abstract class AbstractNioChannel extends AbstractChannel {
             try {
                 //unwrappedSelector获取eventLoop上的selector，每个EventLoop上都有一个Selector
                 //但这里为什么设置的感兴趣事件为0呢？Netty权威指南第二版给出的解释如下:
-                //（1）注册方法是多态的，它既可以被NioServerSocketChannel用来监听客户端的连接接入，也可以注册SocketChannel用来监听网络读写或者写操作
-                //（2）通过SelectionKey的interestOps(int ops)方法可以方便地修改感兴趣的时间，所以此处注册需要获取SelectionKey并给AbstractNIOChannel的成员变量selectionKey赋值
+                //（1）注册方法是多态的，它既可以被NioServerSocketChannel用来监听客户端的连接接入，也可以注册SocketChannel用来监听网络读或者写操作
+                //（2）通过SelectionKey的interestOps(int ops)方法可以方便地修改感兴趣的事件，所以此处注册需要获取SelectionKey并给AbstractNIOChannel的成员变量selectionKey赋值
                 selectionKey = javaChannel().register(eventLoop().unwrappedSelector(), 0, this);
                 return;
             } catch (CancelledKeyException e) {

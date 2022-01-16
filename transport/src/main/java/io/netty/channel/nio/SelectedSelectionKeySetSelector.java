@@ -25,7 +25,13 @@ import java.util.Set;
  * 经过优化的Selector，对原生Selector进行了组合
  */
 final class SelectedSelectionKeySetSelector extends Selector {
+    /**
+     * 自定义的SelectionKeySet实现，我们需要知道此处的selectionKeys与{@link #delegate#selectionKeys}是同一个
+     */
     private final SelectedSelectionKeySet selectionKeys;
+    /**
+     * 组合的原生的Selector{@link NioEventLoop#unwrappedSelector}
+     */
     private final Selector delegate;
 
     SelectedSelectionKeySetSelector(Selector delegate, SelectedSelectionKeySet selectionKeys) {
@@ -65,6 +71,9 @@ final class SelectedSelectionKeySetSelector extends Selector {
         return delegate.select(timeout);
     }
 
+    /**
+     * 在{@link NioEventLoop#run()}会调用
+     */
     @Override
     public int select() throws IOException {
         selectionKeys.reset();

@@ -33,12 +33,12 @@ public interface SelectStrategy {
     int SELECT = -1;
     /**
      * Indicates the IO loop should be retried, no blocking select to follow directly.
-     * 表示需要进行重试的策略
+     * 表示需要进行重试的策略，目前没有使用
      */
     int CONTINUE = -2;
     /**
      * Indicates the IO loop to poll for new events without blocking.
-     *
+     *  目前没有使用
      */
     int BUSY_WAIT = -3;
 

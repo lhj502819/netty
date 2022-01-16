@@ -27,7 +27,7 @@ final class DefaultSelectStrategy implements SelectStrategy {
 
     @Override
     public int calculateStrategy(IntSupplier selectSupplier, boolean hasTasks) throws Exception {
-        //如果有任务，则获取Channel新增的感兴趣的IO事件数量
+        //如果有任务，则返回Channel新增的感兴趣的IO事件数量
         //如果没有任务，则返回阻塞Select的策略
         return hasTasks ? selectSupplier.get() : SelectStrategy.SELECT;
     }

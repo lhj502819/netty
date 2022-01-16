@@ -953,6 +953,12 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
         return isTerminated();
     }
 
+    /**
+     * 添加异步任务到taskQueue
+     * 在服务端创建的源码流程分析文章中我们看到过很多这样的代码：eventLoop().execute(newRunnable()->{......})，底层就会调用这个方法添加任务
+     * 简单来讲就是为了异步化，同时单个线程执行又不会有多线程执行的并发问题。
+     * @param task
+     */
     @Override
     public void execute(Runnable task) {
         ObjectUtil.checkNotNull(task, "task");
@@ -1138,7 +1144,6 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
         /**
          * 丢给Executor执行
          * 这里使用ThreadExecutorMap包装了一层，在执行前后将执行任务的EventExecutor分别进行了绑定和解绑操作，并且自定义了TheadLocal（FastThreadLocal），性能上比JDK的TheadLocal要高
-         * 具体实现细节我们就不再阐述了
          */
         executor.execute(new Runnable() {
             @Override
@@ -1152,7 +1157,7 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
                 //更新最后执行任务时间
                 updateLastExecutionTime();
                 try {
-                    //执行任务(NioEventLoop)
+                    //执行任务(NioEventLoop)，此处会调用到NioEventLoop中
                     SingleThreadEventExecutor.this.run();
                     //标记任务执行成功
                     success = true;
