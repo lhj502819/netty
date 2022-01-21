@@ -26,6 +26,9 @@ import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.SelfSignedCertificate;
 
+import java.time.LocalDateTime;
+import java.util.concurrent.TimeUnit;
+
 /**
  * Echoes back any received data from a client.
  */
@@ -69,6 +72,7 @@ public final class EchoServer {
                         }
                     });
 
+            workerGroup.scheduleWithFixedDelay(()-> System.out.println("定时执行，当前时间:" + LocalDateTime.now().toString()),1,10, TimeUnit.SECONDS);
             // Start the server.
             //绑定端口，并同步等待成功，即启动服务端
             ChannelFuture f = b.bind(PORT).addListener(new ChannelFutureListener() {

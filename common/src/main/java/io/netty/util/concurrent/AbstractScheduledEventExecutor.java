@@ -168,6 +168,12 @@ public abstract class AbstractScheduledEventExecutor extends AbstractEventExecut
         return scheduledTask != null && scheduledTask.deadlineNanos() <= nanoTime();
     }
 
+    /**
+     * 延迟执行
+     * @param command 延迟执行的任务
+     * @param delay 延迟时间
+     * @param unit 延迟时间单位
+     */
     @Override
     public ScheduledFuture<?> schedule(Runnable command, long delay, TimeUnit unit) {
         ObjectUtil.checkNotNull(command, "command");
@@ -183,6 +189,12 @@ public abstract class AbstractScheduledEventExecutor extends AbstractEventExecut
                 deadlineNanos(unit.toNanos(delay))));
     }
 
+    /**
+     * 延迟执行
+     * @param callable 延迟执行的任务
+     * @param delay 延迟时间
+     * @param unit 延迟时间单位
+     */
     @Override
     public <V> ScheduledFuture<V> schedule(Callable<V> callable, long delay, TimeUnit unit) {
         ObjectUtil.checkNotNull(callable, "callable");
@@ -195,6 +207,14 @@ public abstract class AbstractScheduledEventExecutor extends AbstractEventExecut
         return schedule(new ScheduledFutureTask<V>(this, callable, deadlineNanos(unit.toNanos(delay))));
     }
 
+    /**
+     * 在延迟initialDelay后定时执行任务
+     * @param command 要执行的任务
+     * @param initialDelay 初始化延迟
+     * @param period 两次任务开始执行的延迟
+     * @param unit 时间单位
+     * @return
+     */
     @Override
     public ScheduledFuture<?> scheduleAtFixedRate(Runnable command, long initialDelay, long period, TimeUnit unit) {
         ObjectUtil.checkNotNull(command, "command");
@@ -214,6 +234,14 @@ public abstract class AbstractScheduledEventExecutor extends AbstractEventExecut
                 this, command, deadlineNanos(unit.toNanos(initialDelay)), unit.toNanos(period)));
     }
 
+    /**
+     * 在延迟initialDelay后定时执行任务
+     * @param command 要执行的任务
+     * @param initialDelay 初始化延迟
+     * @param delay 下一次任务开始距前一次任务结束的时间
+     * @param unit 时间单位
+     * @return
+     */
     @Override
     public ScheduledFuture<?> scheduleWithFixedDelay(Runnable command, long initialDelay, long delay, TimeUnit unit) {
         ObjectUtil.checkNotNull(command, "command");

@@ -23,14 +23,28 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.Delayed;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * 实现了ScheduledFuture表示是异步的，PriorityQueueNode表示是有序的
+ *
+ * @param <V>
+ */
 @SuppressWarnings("ComparableImplementedButEqualsNotOverridden")
 final class ScheduledFutureTask<V> extends PromiseTask<V> implements ScheduledFuture<V>, PriorityQueueNode {
+    /**
+     * 定时任务的初始化时间
+     */
     private static final long START_TIME = System.nanoTime();
 
+    /**
+     * 获得当前距初始化时间的间隔
+     */
     static long nanoTime() {
         return System.nanoTime() - START_TIME;
     }
 
+    /**
+     * 获得任务的执行时间，相对START_TIME的
+     */
     static long deadlineNanos(long delay) {
         long deadlineNanos = nanoTime() + delay;
         // Guard against overflow
@@ -42,16 +56,22 @@ final class ScheduledFutureTask<V> extends PromiseTask<V> implements ScheduledFu
     }
 
     // set once when added to priority queue
+    /**
+     * 任务ID
+     */
     private long id;
 
     private long deadlineNanos;
     /* 0 - no repeat, >0 - repeat at fixed rate, <0 - repeat with fixed delay */
+    /**
+     * 两个任务之间的执行延迟
+     */
     private final long periodNanos;
 
     private int queueIndex = INDEX_NOT_IN_QUEUE;
 
     ScheduledFutureTask(AbstractScheduledEventExecutor executor,
-            Runnable runnable, long nanoTime) {
+                        Runnable runnable, long nanoTime) {
 
         super(executor, runnable);
         deadlineNanos = nanoTime;
@@ -59,7 +79,7 @@ final class ScheduledFutureTask<V> extends PromiseTask<V> implements ScheduledFu
     }
 
     ScheduledFutureTask(AbstractScheduledEventExecutor executor,
-            Runnable runnable, long nanoTime, long period) {
+                        Runnable runnable, long nanoTime, long period) {
 
         super(executor, runnable);
         deadlineNanos = nanoTime;
@@ -67,7 +87,7 @@ final class ScheduledFutureTask<V> extends PromiseTask<V> implements ScheduledFu
     }
 
     ScheduledFutureTask(AbstractScheduledEventExecutor executor,
-            Callable<V> callable, long nanoTime, long period) {
+                        Callable<V> callable, long nanoTime, long period) {
 
         super(executor, callable);
         deadlineNanos = nanoTime;
@@ -75,7 +95,7 @@ final class ScheduledFutureTask<V> extends PromiseTask<V> implements ScheduledFu
     }
 
     ScheduledFutureTask(AbstractScheduledEventExecutor executor,
-            Callable<V> callable, long nanoTime) {
+                        Callable<V> callable, long nanoTime) {
 
         super(executor, callable);
         deadlineNanos = nanoTime;
@@ -119,7 +139,7 @@ final class ScheduledFutureTask<V> extends PromiseTask<V> implements ScheduledFu
     }
 
     static long deadlineToDelayNanos(long deadlineNanos) {
-        return deadlineNanos == 0L ? 0L : Math.max(0L, deadlineNanos - nanoTime());
+        return deadlineNanos == 0L ? 0L : Math.max(0L, deadlineNanos - nanoTime());//任务执行时间 - 当前时间，计算是否超时，超时了返回0
     }
 
     public long delayNanos(long currentTimeNanos) {
@@ -157,14 +177,19 @@ final class ScheduledFutureTask<V> extends PromiseTask<V> implements ScheduledFu
         assert executor().inEventLoop();
         try {
             if (delayNanos() > 0L) {
+                // 大于零表示没过期
                 // Not yet expired, need to add or remove from queue
                 if (isCancelled()) {
+                    //如果已经取消，则从定时任务队列中移除当前任务
                     scheduledExecutor().scheduledTaskQueue().removeTyped(this);
                 } else {
+                    //则将当前任务添加到定时任务队列中
                     scheduledExecutor().scheduleFromEventLoop(this);
                 }
                 return;
             }
+            ////////////////////////任务过期//////////////////////////////////////
+            //如果执行两个任务的执行延迟为0
             if (periodNanos == 0) {
                 if (setUncancellableInternal()) {
                     V result = runTask();
@@ -173,14 +198,19 @@ final class ScheduledFutureTask<V> extends PromiseTask<V> implements ScheduledFu
             } else {
                 // check if is done as it may was cancelled
                 if (!isCancelled()) {
+                    //如果任务没有被取消，则执行任务
                     runTask();
                     if (!executor().isShutdown()) {
                         if (periodNanos > 0) {
+                            //重新设置下一次的执行时间
                             deadlineNanos += periodNanos;
                         } else {
+                            //如果两次执行间隔小于0，负负得正获得新的执行时间
+                            //设置执行时间为当前时间
                             deadlineNanos = nanoTime() - periodNanos;
                         }
                         if (!isCancelled()) {
+                            //如果没有被取消，将当前任务添加到定时任务队列中
                             scheduledExecutor().scheduledTaskQueue().add(this);
                         }
                     }
@@ -219,10 +249,10 @@ final class ScheduledFutureTask<V> extends PromiseTask<V> implements ScheduledFu
         buf.setCharAt(buf.length() - 1, ',');
 
         return buf.append(" deadline: ")
-                  .append(deadlineNanos)
-                  .append(", period: ")
-                  .append(periodNanos)
-                  .append(')');
+                .append(deadlineNanos)
+                .append(", period: ")
+                .append(periodNanos)
+                .append(')');
     }
 
     @Override
