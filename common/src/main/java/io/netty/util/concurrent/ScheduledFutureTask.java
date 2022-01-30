@@ -61,6 +61,9 @@ final class ScheduledFutureTask<V> extends PromiseTask<V> implements ScheduledFu
      */
     private long id;
 
+    /**
+     * 任务的执行时间
+     */
     private long deadlineNanos;
     /* 0 - no repeat, >0 - repeat at fixed rate, <0 - repeat with fixed delay */
     /**
@@ -184,6 +187,7 @@ final class ScheduledFutureTask<V> extends PromiseTask<V> implements ScheduledFu
                     scheduledExecutor().scheduledTaskQueue().removeTyped(this);
                 } else {
                     //则将当前任务添加到定时任务队列中
+                    //后续会有EventLoop轮询队列中的定时任务是否该执行，我们在前边的文章中讲过
                     scheduledExecutor().scheduleFromEventLoop(this);
                 }
                 return;

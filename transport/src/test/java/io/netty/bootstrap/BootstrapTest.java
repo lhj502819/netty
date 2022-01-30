@@ -221,6 +221,7 @@ public class BootstrapTest {
                     queue.add(future.channel().eventLoop().inEventLoop(Thread.currentThread()));
                     queue.add(future.isSuccess());
                 }
+
             });
             assertTrue(queue.take());
             assertTrue(queue.take());
