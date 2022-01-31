@@ -73,14 +73,26 @@ final class ScheduledFutureTask<V> extends PromiseTask<V> implements ScheduledFu
 
     private int queueIndex = INDEX_NOT_IN_QUEUE;
 
+    /**
+     * @param executor 执行任务的Executpr
+     * @param runnable 任务
+     * @param nanoTime 任务的执行时间
+     */
     ScheduledFutureTask(AbstractScheduledEventExecutor executor,
                         Runnable runnable, long nanoTime) {
 
         super(executor, runnable);
         deadlineNanos = nanoTime;
+        //默认两个任务之间没有延迟
         periodNanos = 0;
     }
 
+    /**
+     * @param executor 执行任务的Executor
+     * @param runnable 任务
+     * @param nanoTime 任务的执行时间
+     * @param period 两个任务之间的执行延迟
+     */
     ScheduledFutureTask(AbstractScheduledEventExecutor executor,
                         Runnable runnable, long nanoTime, long period) {
 
@@ -200,13 +212,14 @@ final class ScheduledFutureTask<V> extends PromiseTask<V> implements ScheduledFu
                     setSuccessInternal(result);
                 }
             } else {
+                //两个任务的执行延迟大于0 ，判断任务是否已经取消
                 // check if is done as it may was cancelled
                 if (!isCancelled()) {
                     //如果任务没有被取消，则执行任务
                     runTask();
                     if (!executor().isShutdown()) {
                         if (periodNanos > 0) {
-                            //重新设置下一次的执行时间
+                            //重新设置下一次的执行时间，任务开始执行时间 + 两个任务的延迟时间
                             deadlineNanos += periodNanos;
                         } else {
                             //如果两次执行间隔小于0，负负得正获得新的执行时间

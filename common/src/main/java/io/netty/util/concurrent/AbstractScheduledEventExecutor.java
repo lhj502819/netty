@@ -45,6 +45,9 @@ public abstract class AbstractScheduledEventExecutor extends AbstractEventExecut
        public void run() { } // Do nothing
     };
 
+    /**
+     * 定时任务队列
+     */
     PriorityQueue<ScheduledFutureTask<?>> scheduledTaskQueue;
 
     long nextTaskId;
@@ -213,7 +216,6 @@ public abstract class AbstractScheduledEventExecutor extends AbstractEventExecut
      * @param initialDelay 初始化延迟
      * @param period 两次任务开始执行的延迟
      * @param unit 时间单位
-     * @return
      */
     @Override
     public ScheduledFuture<?> scheduleAtFixedRate(Runnable command, long initialDelay, long period, TimeUnit unit) {
@@ -287,16 +289,20 @@ public abstract class AbstractScheduledEventExecutor extends AbstractEventExecut
 
     private <V> ScheduledFuture<V> schedule(final ScheduledFutureTask<V> task) {
         if (inEventLoop()) {
+            //如果在EventLoop线程中则直接将任务添加到定时任务队列中
             scheduleFromEventLoop(task);
         } else {
             final long deadlineNanos = task.deadlineNanos();
             // task will add itself to scheduled task queue when run if not expired
             if (beforeScheduledTaskSubmitted(deadlineNanos)) {
+                //添加一个异步任务
                 execute(task);
             } else {
+                //懒添加一个异步任务
                 lazyExecute(task);
                 // Second hook after scheduling to facilitate race-avoidance
                 if (afterScheduledTaskSubmitted(deadlineNanos)) {
+                    //任务已经提交完成后
                     execute(WAKEUP_TASK);
                 }
             }
