@@ -21,8 +21,12 @@ package io.netty.util.concurrent;
  * Besides this, it also extends the {@link EventExecutorGroup} to allow for a generic
  * way to access methods.
  *
+ * 事件执行器
  * 扩展了一些方法，比如获取自己所在的EventExecutroGroup、判断当前线程是否在EventLoop中
  *
+ * 这里为什么会继承EventExecutorGroup？
+ *     个人认为是EventExecutorGroup是一组EventExecutor，因此两个类会有相同的行为，比如判断单个Executor是否停止了
+ *      或者一组Executor是否停止了
  */
 public interface EventExecutor extends EventExecutorGroup {
 
